@@ -1,15 +1,30 @@
 <?php
-<<<<<<< HEAD
 /**
- * Profile - Librarian
+ * Profile - Student
  * Library Management System
  */
 
 require_once '../config/config.php';
-requireRole('librarian');
+requireRole('student');
 
 $pageTitle = 'My Profile';
 $currentUser = getCurrentUser();
+
+// Get student record
+try {
+    $db = getDB();
+    
+    $stmt = $db->prepare("SELECT * FROM students WHERE user_id = ?");
+    $stmt->execute([$currentUser['id']]);
+    $student = $stmt->fetch();
+    
+    if (!$student) {
+        setErrorMessage("Student record not found");
+        redirect(SITE_URL . '/auth/logout.php');
+    }
+} catch (PDOException $e) {
+    error_log("Student fetch error: " . $e->getMessage());
+}
 
 // Handle password change
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && validateCSRFToken($_POST['csrf_token'])) {
@@ -29,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validateCSRFToken($_POST['csrf_toke
                 $stmt->execute([$hashedPassword, $currentUser['id']]);
                 
                 setSuccessMessage('Password updated successfully!');
+                redirect(SITE_URL . '/student/profile.php');
             } else {
                 setErrorMessage('New passwords do not match');
             }
@@ -42,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validateCSRFToken($_POST['csrf_toke
 }
 
 include '../includes/header.php';
-include '../includes/sidebar_librarian.php';
+include '../includes/sidebar_student.php';
 ?>
 
 <div class="main-content">
@@ -69,28 +85,38 @@ include '../includes/sidebar_librarian.php';
         
         <div class="card">
             <div class="card-header">
-                <h3>Profile Information</h3>
+                <h3>Student Information</h3>
             </div>
             
             <div style="padding: 1.5rem;">
                 <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($currentUser['full_name']); ?>" disabled>
+                    <label>Student ID</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($student['student_id']); ?>" disabled>
                 </div>
                 
                 <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($currentUser['username']); ?>" disabled>
+                    <label>Full Name</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($student['full_name']); ?>" disabled>
                 </div>
                 
                 <div class="form-group">
                     <label>Email</label>
-                    <input type="email" class="form-control" value="<?php echo htmlspecialchars($currentUser['email']); ?>" disabled>
+                    <input type="email" class="form-control" value="<?php echo htmlspecialchars($student['email']); ?>" disabled>
                 </div>
                 
                 <div class="form-group">
-                    <label>Role</label>
-                    <input type="text" class="form-control" value="<?php echo ucfirst(str_replace('_', ' ', $currentUser['role'])); ?>" disabled>
+                    <label>Department</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($student['department']); ?>" disabled>
+                </div>
+                
+                <div class="form-group">
+                    <label>Year</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($student['year']); ?>" disabled>
+                </div>
+                
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($student['phone']); ?>" disabled>
                 </div>
             </div>
         </div>
@@ -111,6 +137,7 @@ include '../includes/sidebar_librarian.php';
                 <div class="form-group">
                     <label>New Password *</label>
                     <input type="password" name="new_password" class="form-control" required minlength="6">
+                    <small>Minimum 6 characters</small>
                 </div>
                 
                 <div class="form-group">
@@ -125,8 +152,3 @@ include '../includes/sidebar_librarian.php';
 </div>
 
 <?php include '../includes/footer.php'; ?>
-=======
-// Redirect to shared profile page
-header('Location: ../admin/profile.php');
-exit;
->>>>>>> 533eea2df3a74a0379fdafca4c2a807b467aef84
