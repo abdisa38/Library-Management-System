@@ -121,3 +121,199 @@ include '../includes/sidebar_admin.php';
             </div>
             
             <div class="stat-card success">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3><?php echo number_format($totalStudents); ?></h3>
+                        <p>Total Students</p>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card info">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3><?php echo number_format($totalLibrarians); ?></h3>
+                        <p>Total Librarians</p>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card warning">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3><?php echo number_format($borrowedBooks); ?></h3>
+                        <p>Borrowed Books</p>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-book-reader"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card success">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3><?php echo number_format($returnedBooks); ?></h3>
+                        <p>Returned Books</p>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-undo"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card danger">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3><?php echo number_format($overdueBooks); ?></h3>
+                        <p>Overdue Books</p>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card danger">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3><?php echo formatCurrency($totalFines); ?></h3>
+                        <p>Total Fines</p>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card primary">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3><?php echo number_format($availableBooks); ?></h3>
+                        <p>Available Books</p>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Row -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Monthly Borrow Statistics</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="borrowChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Borrowing Activity -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Recent Borrowing Activity</h3>
+                <a href="<?php echo SITE_URL; ?>/admin/borrow-report.php" class="btn btn-primary btn-sm">View All</a>
+            </div>
+            <div class="card-body">
+                <?php if (empty($recentBorrows)): ?>
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>No Borrowing Records</h3>
+                    <p>There are no borrowing records to display yet.</p>
+                </div>
+                <?php else: ?>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Student Name</th>
+                                <th>Book Title</th>
+                                <th>Author</th>
+                                <th>Borrow Date</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recentBorrows as $borrow): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($borrow['student_id']); ?></td>
+                                <td><?php echo htmlspecialchars($borrow['student_name']); ?></td>
+                                <td><?php echo htmlspecialchars($borrow['book_title']); ?></td>
+                                <td><?php echo htmlspecialchars($borrow['author']); ?></td>
+                                <td><?php echo formatDate($borrow['borrow_date'], 'M d, Y'); ?></td>
+                                <td><?php echo formatDate($borrow['due_date'], 'M d, Y'); ?></td>
+                                <td>
+                                    <?php
+                                    $status = $borrow['status'];
+                                    $badgeClass = $status === 'returned' ? 'success' : 
+                                                ($status === 'overdue' ? 'danger' : 'warning');
+                                    ?>
+                                    <span class="badge badge-<?php echo $badgeClass; ?>">
+                                        <?php echo ucfirst($status); ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Monthly Borrow Chart
+const borrowCtx = document.getElementById('borrowChart');
+if (borrowCtx) {
+    const monthlyData = <?php echo json_encode($monthlyBorrows); ?>;
+    
+    new Chart(borrowCtx, {
+        type: 'line',
+        data: {
+            labels: monthlyData.map(item => item.month),
+            datasets: [{
+                label: 'Books Borrowed',
+                data: monthlyData.map(item => item.count),
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+
+<?php include '../includes/footer.php'; ?>
