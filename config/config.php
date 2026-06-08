@@ -14,7 +14,7 @@ require_once __DIR__ . '/database.php';
 
 // Site Configuration
 define('SITE_NAME', 'Library Management System');
-define('SITE_URL', 'http://localhost/Library-Management-System');
+define('SITE_URL', 'http://localhost/Library Management System/Library-Management-System');
 define('BASE_PATH', dirname(__DIR__));
 
 // Directory paths
