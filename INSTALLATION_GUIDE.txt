@@ -1,0 +1,317 @@
+═══════════════════════════════════════════════════════════════════════════
+    LIBRARY MANAGEMENT SYSTEM - INSTALLATION & USAGE GUIDE
+═══════════════════════════════════════════════════════════════════════════
+
+PROJECT OVERVIEW
+================
+A complete, production-ready Library Management System built with:
+- Frontend: HTML5, CSS3, JavaScript (Vanilla JS)
+- Backend: PHP 8+
+- Database: MySQL
+- Architecture: MVC Pattern
+- Features: Role-Based Access Control, Book Management, Borrowing System,
+  Automatic Fine Calculation, Reports & Analytics
+
+INSTALLATION STEPS
+==================
+
+1. PREREQUISITES
+   - XAMPP (Apache, MySQL, PHP 8+)
+   - Modern web browser
+
+2. SETUP DATABASE
+   - Start XAMPP Control Panel
+   - Start Apache and MySQL services
+   - Open phpMyAdmin: http://localhost/phpmyadmin
+   - Create new database: library_management_system
+   - Import SQL file: database/library_management_system.sql
+
+3. CONFIGURATION
+   - Open: config/database.php
+   - Verify database credentials:
+     * DB_HOST: localhost
+     * DB_USER: root
+     * DB_PASS: (empty for default XAMPP)
+     * DB_NAME: library_management_system
+
+4. ACCESS THE SYSTEM
+   - URL: http://localhost/Library-Management-System/
+   - You will be redirected to login page
+
+DEFAULT LOGIN CREDENTIALS
+===========================
+
+SUPER ADMIN:
+Username: admin
+Password: admin123
+
+LIBRARIAN:
+Username: librarian
+Password: librarian123
+
+STUDENT:
+Username: student
+Password: student123
+
+⚠️ IMPORTANT: Change these passwords after first login!
+
+USER ROLES & PERMISSIONS
+=========================
+
+SUPER ADMIN CAN:
+- Manage all users (add, edit, delete)
+- Manage librarians and students
+- Manage books and categories
+- View all reports (borrow, return, fine)
+- Configure system settings
+- Full dashboard access
+
+LIBRARIAN CAN:
+- Manage books and categories
+- Issue books to students
+- Process book returns
+- Manage student records
+- Calculate fines automatically
+- Generate reports
+- View borrow history
+
+STUDENT CAN:
+- Browse available books
+- View borrowed books
+- Check borrow history
+- View due dates
+- View fines
+- Receive notifications
+
+KEY FEATURES
+============
+
+1. BOOK MANAGEMENT
+   - Add/Edit/Delete books
+   - Upload book covers
+   - ISBN validation
+   - Category management
+   - Quantity tracking
+   - Availability status
+
+2. BORROWING SYSTEM
+   - Issue books with due dates
+   - Return books
+   - Auto-update availability
+   - Prevent duplicate borrows
+   - Maximum 5 books per student
+   - 14-day borrow period
+
+3. FINE SYSTEM
+   - Auto-calculate: $1 per overdue day
+   - Track payment status
+   - Fine history
+   - Generate fine reports
+
+4. SEARCH & FILTER
+   - Search by title, author, ISBN
+   - Filter by category
+   - Filter by availability
+   - Global search bar
+
+5. REPORTS
+   - Dashboard statistics
+   - Monthly charts
+   - Borrow reports
+   - Return reports
+   - Fine reports
+   - Export to CSV
+
+6. UI/UX
+   - Responsive design (mobile, tablet, desktop)
+   - Dark/Light theme toggle
+   - Modern professional design
+   - Font Awesome icons
+   - Smooth animations
+   - Interactive charts
+
+SECURITY FEATURES
+=================
+✓ Password hashing (bcrypt)
+✓ Prepared statements (PDO)
+✓ Input validation
+✓ Output sanitization
+✓ CSRF protection
+✓ Session security
+✓ SQL injection prevention
+✓ XSS protection
+
+SYSTEM SETTINGS
+===============
+Edit config/config.php to customize:
+
+FINE_PER_DAY = 1.00           (Fine amount per overdue day)
+MAX_BORROW_DAYS = 14          (Maximum borrow period)
+MAX_BOOKS_PER_STUDENT = 5     (Maximum books per student)
+SESSION_TIMEOUT = 1800        (Session timeout in seconds)
+
+TROUBLESHOOTING
+===============
+
+Problem: Cannot connect to database
+Solution:
+- Verify MySQL is running in XAMPP
+- Check database credentials in config/database.php
+- Ensure database was imported successfully
+
+Problem: Login not working
+Solution:
+- Clear browser cache and cookies
+- Verify credentials in database
+- Check if PHP sessions are enabled
+
+Problem: Book covers not uploading
+Solution:
+- Check folder permissions for uploads/book_covers/
+- Verify upload_max_filesize in php.ini
+- Ensure file type is JPG, PNG, or GIF
+
+Problem: Page not found (404)
+Solution:
+- Verify Apache is running
+- Check file paths are correct
+- Ensure files are in htdocs folder
+
+FILE STRUCTURE
+==============
+
+Library-Management-System/
+│
+├── admin/                 (Super Admin pages)
+│   ├── dashboard.php
+│   ├── users.php
+│   ├── books.php
+│   └── ... (more admin pages)
+│
+├── librarian/            (Librarian pages)
+│   ├── dashboard.php
+│   ├── issue-book.php
+│   ├── return-book.php
+│   └── ... (more librarian pages)
+│
+├── student/              (Student pages)
+│   ├── dashboard.php
+│   ├── available-books.php
+│   └── ... (more student pages)
+│
+├── auth/                 (Authentication)
+│   ├── login.php
+│   └── logout.php
+│
+├── assets/               (CSS, JS, Images)
+│   ├── css/
+│   └── js/
+│
+├── config/               (Configuration files)
+│   ├── config.php
+│   └── database.php
+│
+├── includes/             (Reusable components)
+│   ├── header.php
+│   ├── footer.php
+│   ├── navbar.php
+│   └── sidebar files
+│
+├── database/             (SQL file)
+│   └── library_management_system.sql
+│
+├── uploads/              (Upload directory)
+│   └── book_covers/
+│
+└── index.php             (Entry point)
+
+USAGE GUIDE
+===========
+
+FOR SUPER ADMIN:
+
+1. Managing Books:
+   - Go to "Manage Books"
+   - Click "Add New Book"
+   - Fill in: Title, Author, ISBN, Publisher, Year, Quantity, Category
+   - Upload book cover (optional)
+   - Click "Submit"
+
+2. Managing Users:
+   - Go to "Manage Users"
+   - Click "Add New User"
+   - Fill in user details
+   - Select role (Super Admin/Librarian/Student)
+   - Click "Submit"
+
+3. Viewing Reports:
+   - Navigate to desired report (Borrow/Return/Fine)
+   - Select date range (optional)
+   - Export to CSV or print
+
+FOR LIBRARIAN:
+
+1. Issuing a Book:
+   - Go to "Issue Book"
+   - Enter Student ID
+   - Search and select book
+   - Set due date (default 14 days)
+   - Click "Issue Book"
+
+2. Returning a Book:
+   - Go to "Return Book"
+   - Enter Student ID or Book ISBN
+   - View list of borrowed books
+   - Click "Return" button
+   - System auto-calculates fine if overdue
+
+3. Managing Fines:
+   - Go to "Fine Management"
+   - View all outstanding fines
+   - Update payment status
+   - Generate fine reports
+
+FOR STUDENTS:
+
+1. Browsing Books:
+   - Go to "Available Books"
+   - Use search bar to find books
+   - Filter by category
+   - Click on book to view details
+
+2. Checking Borrowed Books:
+   - Go to "My Borrowed Books"
+   - View all currently borrowed books
+   - Check due dates
+   - View any pending fines
+
+BROWSER COMPATIBILITY
+=====================
+✓ Chrome (recommended)
+✓ Firefox
+✓ Safari
+✓ Edge
+✓ Opera
+
+RESPONSIVE DESIGN
+=================
+✓ Mobile phones (320px+)
+✓ Tablets (768px+)
+✓ Laptops (1024px+)
+✓ Desktops (1280px+)
+
+SUPPORT & CONTACT
+=================
+For issues or questions:
+- Email: library@example.com
+- GitHub: Create an issue
+
+VERSION INFORMATION
+===================
+Version: 1.0.0
+Last Updated: 2024
+License: MIT
+
+═══════════════════════════════════════════════════════════════════════════
+            THANK YOU FOR USING LIBRARY MANAGEMENT SYSTEM!
+═══════════════════════════════════════════════════════════════════════════
