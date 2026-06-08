@@ -72,6 +72,16 @@ $userInitials = strtoupper(substr($currentUser['full_name'], 0, 2));
                 <i class="fas fa-cog"></i>
                 <span>System Settings</span>
             </a>
+            <a href="<?php echo SITE_URL; ?>/admin/notifications.php" class="menu-item">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+                <?php
+                $unread = getUnreadNotificationCount($currentUser['id']);
+                if ($unread > 0):
+                ?>
+                <span class="badge badge-danger" style="margin-left: auto;"><?php echo $unread; ?></span>
+                <?php endif; ?>
+            </a>
             <a href="<?php echo SITE_URL; ?>/admin/profile.php" class="menu-item">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>

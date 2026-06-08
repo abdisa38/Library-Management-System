@@ -68,6 +68,16 @@ $userInitials = strtoupper(substr($currentUser['full_name'], 0, 2));
                 <i class="fas fa-file-alt"></i>
                 <span>Reports</span>
             </a>
+            <a href="<?php echo SITE_URL; ?>/librarian/notifications.php" class="menu-item">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+                <?php
+                $unread = getUnreadNotificationCount($currentUser['id']);
+                if ($unread > 0):
+                ?>
+                <span class="badge badge-danger" style="margin-left: auto;"><?php echo $unread; ?></span>
+                <?php endif; ?>
+            </a>
         </div>
         
         <div class="menu-section">

@@ -278,3 +278,29 @@ function daysBetween($date1, $date2) {
     $interval = $d1->diff($d2);
     return $interval->format('%r%a');
 }
+
+
+// Send notification to user
+function sendNotification($userId, $message) {
+    try {
+        $db = getDB();
+        $stmt = $db->prepare("INSERT INTO notifications (user_id, message, status) VALUES (?, ?, 'unread')");
+        return $stmt->execute([$userId, $message]);
+    } catch (PDOException $e) {
+        error_log("Send notification error: " . $e->getMessage());
+        return false;
+    }
+}
+
+// Get unread notification count
+function getUnreadNotificationCount($userId) {
+    try {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT COUNT(*) as total FROM notifications WHERE user_id = ? AND status = 'unread'");
+        $stmt->execute([$userId]);
+        return $stmt->fetch()['total'];
+    } catch (PDOException $e) {
+        error_log("Get notification count error: " . $e->getMessage());
+        return 0;
+    }
+}

@@ -1,36 +1,56 @@
 <?php
 /**
- * Notifications - Student
+ * Notifications - Librarian
  * Library Management System
  */
 
 require_once '../config/config.php';
-requireRole('student');
+requireRole('librarian');
 
 $pageTitle = 'Notifications';
 $currentUser = getCurrentUser();
 
-// Handle sending notification (reply to librarian/admin)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_reply']) && validateCSRFToken($_POST['csrf_token'])) {
+// Handle sending notification
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message']) && validateCSRFToken($_POST['csrf_token'])) {
     try {
         $db = getDB();
         
-        // Send to all librarians or admins
-        $recipientRole = $_POST['recipient_role'];
-        $message = "Message from Student ({$currentUser['full_name']}): " . $_POST['message'];
+        $recipientType = $_POST['recipient_type'];
+        $message = "Message from Librarian ({$currentUser['full_name']}): " . $_POST['message'];
         
-        $stmt = $db->prepare("SELECT id FROM users WHERE role = ? AND status = 'active'");
-        $stmt->execute([$recipientRole]);
-        $recipients = $stmt->fetchAll();
-        
-        foreach ($recipients as $recipient) {
-            sendNotification($recipient['id'], $message);
+        if ($recipientType === 'all_students') {
+            // Send to all students
+            $stmt = $db->query("SELECT user_id FROM students WHERE user_id IS NOT NULL");
+            $students = $stmt->fetchAll();
+            foreach ($students as $stu) {
+                sendNotification($stu['user_id'], $message);
+            }
+            setSuccessMessage('Message sent to all students');
+        } elseif ($recipientType === 'specific_student') {
+            // Send to specific student
+            $studentId = $_POST['student_id'];
+            $stmt = $db->prepare("SELECT user_id FROM students WHERE id = ?");
+            $stmt->execute([$studentId]);
+            $student = $stmt->fetch();
+            if ($student && $student['user_id']) {
+                sendNotification($student['user_id'], $message);
+                setSuccessMessage('Message sent successfully');
+            } else {
+                setErrorMessage('Student user account not found');
+            }
+        } elseif ($recipientType === 'admin') {
+            // Send to admin
+            $stmt = $db->query("SELECT id FROM users WHERE role = 'super_admin' AND status = 'active'");
+            $admins = $stmt->fetchAll();
+            foreach ($admins as $admin) {
+                sendNotification($admin['id'], $message);
+            }
+            setSuccessMessage('Message sent to admin');
         }
         
-        setSuccessMessage('Message sent successfully to ' . ucfirst(str_replace('_', ' ', $recipientRole)));
-        redirect(SITE_URL . '/student/notifications.php');
+        redirect(SITE_URL . '/librarian/notifications.php');
     } catch (PDOException $e) {
-        error_log("Send reply error: " . $e->getMessage());
+        error_log("Send message error: " . $e->getMessage());
         setErrorMessage('Error sending message');
     }
 }
@@ -42,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_read']) && valid
         $stmt = $db->prepare("UPDATE notifications SET status = 'read' WHERE id = ? AND user_id = ?");
         $stmt->execute([$_POST['notification_id'], $currentUser['id']]);
         setSuccessMessage('Notification marked as read');
-        redirect(SITE_URL . '/student/notifications.php');
+        redirect(SITE_URL . '/librarian/notifications.php');
     } catch (PDOException $e) {
         error_log("Mark read error: " . $e->getMessage());
         setErrorMessage('Error updating notification');
@@ -56,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_all_read']) && v
         $stmt = $db->prepare("UPDATE notifications SET status = 'read' WHERE user_id = ? AND status = 'unread'");
         $stmt->execute([$currentUser['id']]);
         setSuccessMessage('All notifications marked as read');
-        redirect(SITE_URL . '/student/notifications.php');
+        redirect(SITE_URL . '/librarian/notifications.php');
     } catch (PDOException $e) {
         error_log("Mark all read error: " . $e->getMessage());
         setErrorMessage('Error updating notifications');
@@ -74,13 +94,16 @@ try {
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM notifications WHERE user_id = ? AND status = 'unread'");
     $stmt->execute([$currentUser['id']]);
     $unreadCount = $stmt->fetch()['total'];
+    
+    // Get all students for dropdown
+    $allStudents = $db->query("SELECT id, student_id, full_name, email FROM students ORDER BY full_name")->fetchAll();
 } catch (PDOException $e) {
     error_log("Notifications fetch error: " . $e->getMessage());
     setErrorMessage("Error loading notifications");
 }
 
 include '../includes/header.php';
-include '../includes/sidebar_student.php';
+include '../includes/sidebar_librarian.php';
 ?>
 
 <div class="main-content">
@@ -175,14 +198,27 @@ include '../includes/sidebar_student.php';
         </div>
         <form method="POST">
             <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-            <input type="hidden" name="send_reply" value="1">
+            <input type="hidden" name="send_message" value="1">
             
             <div class="form-group">
-                <label>Send To *</label>
-                <select name="recipient_role" class="form-control" required>
-                    <option value="">Select Recipient</option>
-                    <option value="librarian">Librarians</option>
-                    <option value="super_admin">Admin</option>
+                <label>Recipient Type *</label>
+                <select name="recipient_type" id="recipient_type" class="form-control" required onchange="toggleStudentSelect()">
+                    <option value="">Select Recipient Type</option>
+                    <option value="all_students">All Students</option>
+                    <option value="specific_student">Specific Student</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="student_select_group" style="display: none;">
+                <label>Select Student *</label>
+                <select name="student_id" id="student_id" class="form-control">
+                    <option value="">Select Student</option>
+                    <?php foreach ($allStudents as $student): ?>
+                    <option value="<?php echo $student['id']; ?>">
+                        <?php echo htmlspecialchars($student['student_id']) . ' - ' . htmlspecialchars($student['full_name']); ?>
+                    </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             
@@ -208,6 +244,20 @@ function openSendModal() {
 
 function closeSendModal() {
     document.getElementById('sendModal').style.display = 'none';
+}
+
+function toggleStudentSelect() {
+    const recipientType = document.getElementById('recipient_type').value;
+    const studentSelectGroup = document.getElementById('student_select_group');
+    const studentSelect = document.getElementById('student_id');
+    
+    if (recipientType === 'specific_student') {
+        studentSelectGroup.style.display = 'block';
+        studentSelect.required = true;
+    } else {
+        studentSelectGroup.style.display = 'none';
+        studentSelect.required = false;
+    }
 }
 
 window.onclick = function(event) {

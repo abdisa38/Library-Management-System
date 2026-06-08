@@ -36,6 +36,10 @@ $userInitials = strtoupper(substr($currentUser['full_name'], 0, 2));
                 <i class="fas fa-book-reader"></i>
                 <span>My Borrowed Books</span>
             </a>
+            <a href="<?php echo SITE_URL; ?>/student/returned-books.php" class="menu-item">
+                <i class="fas fa-undo"></i>
+                <span>Returned Books</span>
+            </a>
             <a href="<?php echo SITE_URL; ?>/student/history.php" class="menu-item">
                 <i class="fas fa-history"></i>
                 <span>Borrow History</span>
@@ -43,6 +47,12 @@ $userInitials = strtoupper(substr($currentUser['full_name'], 0, 2));
             <a href="<?php echo SITE_URL; ?>/student/notifications.php" class="menu-item">
                 <i class="fas fa-bell"></i>
                 <span>Notifications</span>
+                <?php
+                $unread = getUnreadNotificationCount($currentUser['id']);
+                if ($unread > 0):
+                ?>
+                <span class="badge badge-danger" style="margin-left: auto;"><?php echo $unread; ?></span>
+                <?php endif; ?>
             </a>
         </div>
         

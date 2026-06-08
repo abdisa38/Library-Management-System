@@ -1,37 +1,50 @@
 <?php
 /**
- * Notifications - Student
+ * Notifications - Admin
  * Library Management System
  */
 
 require_once '../config/config.php';
-requireRole('student');
+requireRole('super_admin');
 
 $pageTitle = 'Notifications';
 $currentUser = getCurrentUser();
 
-// Handle sending notification (reply to librarian/admin)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_reply']) && validateCSRFToken($_POST['csrf_token'])) {
+// Handle sending notification
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_notification']) && validateCSRFToken($_POST['csrf_token'])) {
     try {
         $db = getDB();
         
-        // Send to all librarians or admins
-        $recipientRole = $_POST['recipient_role'];
-        $message = "Message from Student ({$currentUser['full_name']}): " . $_POST['message'];
+        $recipientType = $_POST['recipient_type'];
+        $message = $_POST['message'];
         
-        $stmt = $db->prepare("SELECT id FROM users WHERE role = ? AND status = 'active'");
-        $stmt->execute([$recipientRole]);
-        $recipients = $stmt->fetchAll();
-        
-        foreach ($recipients as $recipient) {
-            sendNotification($recipient['id'], $message);
+        if ($recipientType === 'all_librarians') {
+            // Send to all librarians
+            $stmt = $db->query("SELECT id FROM users WHERE role = 'librarian' AND status = 'active'");
+            $librarians = $stmt->fetchAll();
+            foreach ($librarians as $lib) {
+                sendNotification($lib['id'], $message);
+            }
+            setSuccessMessage('Notification sent to all librarians');
+        } elseif ($recipientType === 'all_students') {
+            // Send to all students
+            $stmt = $db->query("SELECT user_id FROM students WHERE user_id IS NOT NULL");
+            $students = $stmt->fetchAll();
+            foreach ($students as $stu) {
+                sendNotification($stu['user_id'], $message);
+            }
+            setSuccessMessage('Notification sent to all students');
+        } elseif ($recipientType === 'specific_user') {
+            // Send to specific user
+            $userId = $_POST['user_id'];
+            sendNotification($userId, $message);
+            setSuccessMessage('Notification sent successfully');
         }
         
-        setSuccessMessage('Message sent successfully to ' . ucfirst(str_replace('_', ' ', $recipientRole)));
-        redirect(SITE_URL . '/student/notifications.php');
+        redirect(SITE_URL . '/admin/notifications.php');
     } catch (PDOException $e) {
-        error_log("Send reply error: " . $e->getMessage());
-        setErrorMessage('Error sending message');
+        error_log("Send notification error: " . $e->getMessage());
+        setErrorMessage('Error sending notification');
     }
 }
 
@@ -42,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_read']) && valid
         $stmt = $db->prepare("UPDATE notifications SET status = 'read' WHERE id = ? AND user_id = ?");
         $stmt->execute([$_POST['notification_id'], $currentUser['id']]);
         setSuccessMessage('Notification marked as read');
-        redirect(SITE_URL . '/student/notifications.php');
+        redirect(SITE_URL . '/admin/notifications.php');
     } catch (PDOException $e) {
         error_log("Mark read error: " . $e->getMessage());
         setErrorMessage('Error updating notification');
@@ -56,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_all_read']) && v
         $stmt = $db->prepare("UPDATE notifications SET status = 'read' WHERE user_id = ? AND status = 'unread'");
         $stmt->execute([$currentUser['id']]);
         setSuccessMessage('All notifications marked as read');
-        redirect(SITE_URL . '/student/notifications.php');
+        redirect(SITE_URL . '/admin/notifications.php');
     } catch (PDOException $e) {
         error_log("Mark all read error: " . $e->getMessage());
         setErrorMessage('Error updating notifications');
@@ -74,13 +87,16 @@ try {
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM notifications WHERE user_id = ? AND status = 'unread'");
     $stmt->execute([$currentUser['id']]);
     $unreadCount = $stmt->fetch()['total'];
+    
+    // Get all users for dropdown
+    $allUsers = $db->query("SELECT id, full_name, email, role FROM users WHERE status = 'active' ORDER BY role, full_name")->fetchAll();
 } catch (PDOException $e) {
     error_log("Notifications fetch error: " . $e->getMessage());
     setErrorMessage("Error loading notifications");
 }
 
 include '../includes/header.php';
-include '../includes/sidebar_student.php';
+include '../includes/sidebar_admin.php';
 ?>
 
 <div class="main-content">
@@ -89,20 +105,9 @@ include '../includes/sidebar_student.php';
     <div class="content">
         <div class="page-header">
             <h1 class="page-title">Notifications</h1>
-            <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-sm btn-primary" onclick="openSendModal()">
-                    <i class="fas fa-paper-plane"></i> Send Message
-                </button>
-                <?php if ($unreadCount > 0): ?>
-                <form method="POST" style="display: inline;">
-                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-                    <input type="hidden" name="mark_all_read" value="1">
-                    <button type="submit" class="btn btn-sm btn-secondary">
-                        <i class="fas fa-check-double"></i> Mark All as Read
-                    </button>
-                </form>
-                <?php endif; ?>
-            </div>
+            <button class="btn btn-primary" onclick="openSendModal()">
+                <i class="fas fa-paper-plane"></i> Send Notification
+            </button>
         </div>
         
         <?php if ($success = getSuccessMessage()): ?>
@@ -121,10 +126,19 @@ include '../includes/sidebar_student.php';
         
         <div class="card">
             <div class="card-header">
-                <h3>All Notifications</h3>
-                <?php if ($unreadCount > 0): ?>
-                <span class="badge badge-danger"><?php echo $unreadCount; ?> Unread</span>
-                <?php endif; ?>
+                <h3>My Notifications</h3>
+                <div style="display: flex; gap: 0.5rem;">
+                    <?php if ($unreadCount > 0): ?>
+                    <span class="badge badge-danger"><?php echo $unreadCount; ?> Unread</span>
+                    <form method="POST" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                        <input type="hidden" name="mark_all_read" value="1">
+                        <button type="submit" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-check-double"></i> Mark All as Read
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                </div>
             </div>
             
             <?php if (empty($notifications)): ?>
@@ -154,7 +168,7 @@ include '../includes/sidebar_student.php';
                         <input type="hidden" name="notification_id" value="<?php echo $notification['id']; ?>">
                         <input type="hidden" name="mark_read" value="1">
                         <button type="submit" class="btn btn-sm btn-secondary">
-                            <i class="fas fa-check"></i> Mark as Read
+                            <i class="fas fa-check"></i>
                         </button>
                     </form>
                     <?php endif; ?>
@@ -166,35 +180,48 @@ include '../includes/sidebar_student.php';
     </div>
 </div>
 
-<!-- Send Message Modal -->
+<!-- Send Notification Modal -->
 <div id="sendModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Send Message</h2>
+            <h2>Send Notification</h2>
             <span class="close" onclick="closeSendModal()">&times;</span>
         </div>
         <form method="POST">
             <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-            <input type="hidden" name="send_reply" value="1">
+            <input type="hidden" name="send_notification" value="1">
             
             <div class="form-group">
-                <label>Send To *</label>
-                <select name="recipient_role" class="form-control" required>
-                    <option value="">Select Recipient</option>
-                    <option value="librarian">Librarians</option>
-                    <option value="super_admin">Admin</option>
+                <label>Recipient Type *</label>
+                <select name="recipient_type" id="recipient_type" class="form-control" required onchange="toggleUserSelect()">
+                    <option value="">Select Recipient Type</option>
+                    <option value="all_librarians">All Librarians</option>
+                    <option value="all_students">All Students</option>
+                    <option value="specific_user">Specific User</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="user_select_group" style="display: none;">
+                <label>Select User *</label>
+                <select name="user_id" id="user_id" class="form-control">
+                    <option value="">Select User</option>
+                    <?php foreach ($allUsers as $user): ?>
+                    <option value="<?php echo $user['id']; ?>">
+                        <?php echo htmlspecialchars($user['full_name']) . ' (' . ucfirst(str_replace('_', ' ', $user['role'])) . ') - ' . $user['email']; ?>
+                    </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             
             <div class="form-group">
                 <label>Message *</label>
-                <textarea name="message" class="form-control" rows="4" required placeholder="Type your message here..."></textarea>
+                <textarea name="message" class="form-control" rows="4" required placeholder="Enter your notification message..."></textarea>
             </div>
             
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeSendModal()">Cancel</button>
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-paper-plane"></i> Send Message
+                    <i class="fas fa-paper-plane"></i> Send
                 </button>
             </div>
         </form>
@@ -208,6 +235,20 @@ function openSendModal() {
 
 function closeSendModal() {
     document.getElementById('sendModal').style.display = 'none';
+}
+
+function toggleUserSelect() {
+    const recipientType = document.getElementById('recipient_type').value;
+    const userSelectGroup = document.getElementById('user_select_group');
+    const userSelect = document.getElementById('user_id');
+    
+    if (recipientType === 'specific_user') {
+        userSelectGroup.style.display = 'block';
+        userSelect.required = true;
+    } else {
+        userSelectGroup.style.display = 'none';
+        userSelect.required = false;
+    }
 }
 
 window.onclick = function(event) {
