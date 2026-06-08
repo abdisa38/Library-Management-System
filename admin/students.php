@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Check if student has active borrows
             $stmt = $db->prepare("SELECT COUNT(*) as count FROM borrow_records WHERE student_id = ? AND status IN ('borrowed', 'overdue')");
             $stmt->execute([$id]);
-            $activeB orrows = $stmt->fetch()['count'];
+            $activeBorrows = $stmt->fetch()['count'];
             
             if ($activeBorrows > 0) {
                 setErrorMessage('Cannot delete student. They have active borrowed books.');
